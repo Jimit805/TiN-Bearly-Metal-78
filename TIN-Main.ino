@@ -1,6 +1,7 @@
 #include <PestoLink-Receive.h>
 #include <Alfredo_NoU3.h>
 
+
 // Buttons
 #define BUTTON_BOTTOM 0
 #define BUTTON_RIGHT 1
@@ -26,7 +27,7 @@ NoU_Motor rearLeftMotor(8);
 NoU_Motor rearRightMotor(1);
 NoU_Servo armServo(1);
 NoU_Servo wristServo(2);
-NoU_Motor elevator(7);
+NoU_Motor elevator(7); // Integrated encodered support
 NoU_Motor coralIntake(6);
 NoU_Motor middleIntake(2);
 NoU_Motor algaeIntake(3);
@@ -34,10 +35,36 @@ NoU_Motor algaeIntake(3);
 // Variables
 int armAngle = 0;
 int wristAngle = 0;
-float elevatorThrottle = 0;
 float coralIntakeThrottle = 0;
 float middleIntakeThrottle = 0;
 float algaeIntakeThrottle = 0;
+bool elevatorUseSetpoint = false;
+long elevatorTarget = 0;
+float elevatorPower = 0;
+float elevatorThrottle = 0;
+
+// Elevator PID
+float kP = 0.0005;
+float kI = 0.0000005;
+float kD = 0.0004;
+
+// PID state variables
+float elevatorIntegral = 0;
+float elevatorPrevError = 0;
+
+// Elevator setpoints
+const long CORAL_INTAKE = 0;
+const long CORAL_F_L1 = 0;
+const long CORAL_F_L2 = 500;
+const long CORAL_F_L3 = 750;
+const long CORAL_F_L4 = 1000;
+const long CORAL_B_L1 = 0;
+const long CORAL_B_L2 = 500;
+const long CORAL_B_L3 = 750;
+const long CORAL_B_L4 = 1000;
+const long ALGAE_INTAKE = 100;
+const long ALGAE_NET = 1000;
+const long ALGAE_PROCESSOR = 0;
 
 // Robot Modes
 enum State{teleOP, autoOne};
@@ -122,7 +149,6 @@ void loop() {
     }
 
     // Set motor speeds and servo angles
-    elevator.set(elevatorThrottle);
     armServo.write(armAngle);
     wristServo.write(wristAngle);
     coralIntake.set(coralIntakeThrottle);
@@ -196,13 +222,102 @@ void Elevator() {
     
     // Manual Elevator Control
     if (PestoLink.buttonHeld(LEFT_BUMPER)) {
-        elevatorThrottle = 0.75;
+        elevatorThrottle = 0.5;
     } else if (PestoLink.buttonHeld(RIGHT_BUMPER)){
-        elevatorThrottle = -0.75;
+        elevatorThrottle = -0.5;
     } else {
         elevatorThrottle = 0;
     }
 
+    // Setpoints
+    if (gamePiece == coral) { // Coral Setpoints
+        
+        // Coral Intake
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
+            elevatorTarget = CORAL_INTAKE;
+            elevatorUseSetpoint = true;
+        }
+
+        // Scoring Setpoints
+        if (scoreSide == front) {
+            if (PestoLink.buttonHeld(BUTTON_TOP)) {
+                elevatorTarget = CORAL_F_L4;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+                elevatorTarget = CORAL_F_L3;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
+                elevatorTarget = CORAL_F_L2;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
+                elevatorTarget = CORAL_F_L1;
+                elevatorUseSetpoint = true;
+            }
+        } else if (scoreSide == back) {
+            if (PestoLink.buttonHeld(BUTTON_TOP)) {
+                elevatorTarget = CORAL_B_L4;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+                elevatorTarget = CORAL_B_L3;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
+                elevatorTarget = CORAL_B_L2;
+                elevatorUseSetpoint = true;
+            } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
+                elevatorTarget = CORAL_B_L1;
+                elevatorUseSetpoint = true;
+            }
+        }
+
+    } else if (gamePiece == algae) { // Algae Setpoints
+        
+        // Algae Intake
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
+            elevatorTarget = ALGAE_INTAKE;
+            elevatorUseSetpoint = true;
+        }
+        
+        if (PestoLink.buttonHeld(BUTTON_TOP)) {
+            elevatorTarget = ALGAE_NET;
+            elevatorUseSetpoint = true;
+        } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
+            elevatorTarget = ALGAE_PROCESSOR;
+            elevatorUseSetpoint = true;
+        }
+    }
+
+    // PID Control
+    if (elevatorUseSetpoint) {
+        long currentPos = elevator.getPosition();
+        long error = elevatorTarget - currentPos;
+
+        elevatorIntegral += error;
+        float derivative = error - elevatorPrevError;
+
+        elevatorPower = (kP * error) + (kI * elevatorIntegral) + (kD * derivative);
+        elevatorPower = constrain(elevatorPower, -0.9, 0.9);
+
+        // Stop when near target
+        if (abs(error) < 50) {
+            elevatorPower = 0;
+            elevatorIntegral = 0;
+        }
+
+        elevator.set(elevatorPower);
+        elevatorPrevError = error;
+
+        PestoLink.printfTerminal("Elevator | Pos:%ld Target:%ld Power:%.2f\r\n",
+                                 currentPos, elevatorTarget, elevatorPower);
+    } else {
+        elevator.set(elevatorThrottle);
+        elevatorIntegral = 0;
+        elevatorPrevError = 0;
+    }
+
+    // Reset Encoder
+    if (PestoLink.buttonHeld(R_PRESS)) {
+        elevator.resetPosition();
+    }
 }
 
 
@@ -278,17 +393,11 @@ void Arm() {
 
     }
 
-    // Other setpoints
-
-    
-
-    
-    
-
 }
 
 void ManualArm() {
 
+    
     // Manual Arm control
     if (PestoLink.buttonHeld(D_DOWN) && armAngle > 0) {
         //armAngle--;
@@ -310,7 +419,7 @@ void ManualArm() {
         //wristAngle++;
         //delay(50);
     }
-
+    
 }
 
 void CoralIntake() {
