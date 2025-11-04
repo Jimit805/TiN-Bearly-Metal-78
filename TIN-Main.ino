@@ -327,9 +327,12 @@ void Arm() {
     if (gamePiece == coral) { // Coral Setpoints
 
         // Coral Intake
-        if (PestoLink.buttonHeld(LEFT_BUMPER)) {
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
             armAngle = 0;
             wristAngle = 0;
+        } else {
+            armAngle = 60;
+            wristAngle = 90;
         }
         
         // Coral Scoring
@@ -364,6 +367,14 @@ void Arm() {
     } else if (gamePiece == algae) { // Algae Setpoints
 
         // Algae Intake
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
+            armAngle = 25;
+            wristAngle = -40;
+        } else {
+            armAngle = 60;
+            wristAngle = 90;
+        }
+
         if (scoreSide == back) { // Back Algae Intake
             if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 armAngle = 95; // Low Algae
@@ -397,37 +408,63 @@ void Arm() {
 
 void ManualArm() {
 
-    
+    /*
     // Manual Arm control
     if (PestoLink.buttonHeld(D_DOWN) && armAngle > 0) {
-        //armAngle--;
-        //delay(50);
+        armAngle--;
+        delay(50);
     }
   
     if (PestoLink.buttonHeld(D_UP) && armAngle < 105) {
-        //armAngle++;
-        //delay(50);
+        armAngle++;
+        delay(50);
     }
 
     // Manual Wrist Control
     if (PestoLink.buttonHeld(D_RIGHT) && wristAngle > 0) {
-        //wristAngle--;
-        //delay(50);
+        wristAngle--;
+        delay(50);
     }
   
     if (PestoLink.buttonHeld(D_LEFT) && wristAngle < 95) {
-        //wristAngle++;
-        //delay(50);
+        wristAngle++;
+        delay(50);
     }
-    
+    */
 }
 
 void CoralIntake() {
-
+    
+    // Control the rollers for intaking and scoring coral
+    if (gamePiece = coral) {
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
+            coralIntakeThrottle = 1;
+            middleIntakeThrottle = 1;
+        } else if (PestoLink.buttonHeld(RIGHT_TRIGGER)) {
+            coralIntakeThrottle = -1;
+            middleIntakeThrottle = -1;
+        } else {
+            coralIntakeThrottle = 0;
+            middleIntakeThrottle = 0;
+        }
+    }
 }
 
 void AlgaeIntake() {
 
+    // Control the algae rollers for intaking and scoring algae
+    if (gamePiece = algae) {
+        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
+            algaeIntakeThrottle = 1;
+            middleIntakeThrottle = -1;
+        } else if (PestoLink.buttonHeld(RIGHT_TRIGGER)) {
+            algaeIntakeThrottle = -1;
+            middleIntakeThrottle = 1;
+        } else {
+            algaeIntakeThrottle = 0;
+            middleIntakeThrottle = 0;
+        }
+    }
 }
 
 void handleAuto() {
