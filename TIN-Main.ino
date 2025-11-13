@@ -1,24 +1,6 @@
 #include <PestoLink-Receive.h>
 #include <Alfredo_NoU3.h>
-
-
-// Buttons
-#define BUTTON_BOTTOM 0
-#define BUTTON_RIGHT 1
-#define BUTTON_LEFT 2
-#define BUTTON_TOP 3
-#define LEFT_BUMPER 4
-#define RIGHT_BUMPER 5
-#define LEFT_TRIGGER 6
-#define RIGHT_TRIGGER 7
-#define MID_LEFT 8
-#define MID_RIGHT 9
-#define L_PRESS 10
-#define R_PRESS 11
-#define D_UP 12
-#define D_DOWN 13
-#define D_LEFT 14
-#define D_RIGHT 15
+#include <constants.h>
 
 // Motors and Servos
 NoU_Motor frontLeftMotor(5);
@@ -43,28 +25,9 @@ long elevatorTarget = 0;
 float elevatorPower = 0;
 float elevatorThrottle = 0;
 
-// Elevator PID
-float kP = 0.0005;
-float kI = 0.0000005;
-float kD = 0.0004;
-
 // PID state variables
 float elevatorIntegral = 0;
 float elevatorPrevError = 0;
-
-// Elevator setpoints
-const long CORAL_INTAKE = 0;
-const long CORAL_F_L1 = 0;
-const long CORAL_F_L2 = 500;
-const long CORAL_F_L3 = 750;
-const long CORAL_F_L4 = 1000;
-const long CORAL_B_L1 = 0;
-const long CORAL_B_L2 = 500;
-const long CORAL_B_L3 = 750;
-const long CORAL_B_L4 = 1000;
-const long ALGAE_INTAKE = 100;
-const long ALGAE_NET = 1000;
-const long ALGAE_PROCESSOR = 0;
 
 // Robot Modes
 enum State{teleOP, autoOne};
@@ -316,7 +279,7 @@ void Elevator() {
 
     // Reset Encoder
     if (PestoLink.buttonHeld(R_PRESS)) {
-        elevator.resetPosition();
+        // elevator.resetPosition();
     }
 }
 
