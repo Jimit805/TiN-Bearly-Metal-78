@@ -7,16 +7,17 @@ NoU_Motor frontLeftMotor(5);
 NoU_Motor frontRightMotor(4);
 NoU_Motor rearLeftMotor(8);
 NoU_Motor rearRightMotor(1);
-NoU_Servo armServo(1);
-NoU_Servo wristServo(2);
-NoU_Motor elevator(7); // Integrated encodered support
-NoU_Motor coralIntake(6);
-NoU_Motor middleIntake(2);
-NoU_Motor algaeIntake(3);
+NoU_Servo armServo(3); // 50g Servo
+NoU_Servo wristServo(4); // 9g Servo
+NoU_Motor elevator(6); // Integrated encodered support
+NoU_Motor coralIntake(2); // Double Motor
+NoU_Motor middleIntake(3); // Middle Roller
+NoU_Motor algaeIntake(7); // Top Roller
 
 // Variables
-int armAngle = 0;
-int wristAngle = 0;
+int armAngle = 35;
+int lastArmAngle = 0;
+int wristAngle = 10;
 float coralIntakeThrottle = 0;
 float middleIntakeThrottle = 0;
 float algaeIntakeThrottle = 0;
@@ -56,9 +57,11 @@ void setup() {
     
     NoU3.calibrateIMUs();
 
+    elevator.beginEncoder();
+
     drivetrain.setMinimumOutput(0.2);
     drivetrain.setMaximumOutput(1.0);
-    drivetrain.setDeadband(0.08);
+    drivetrain.setDeadband(0.1);
     drivetrain.setExponent(1.375);
 
     // Inverted Motors
@@ -66,6 +69,9 @@ void setup() {
     rearRightMotor.setInverted(true);
     //frontLeftMotor.setInverted(true);
     //rearLeftMotor.setInverted(true);
+    elevator.setInverted(false);
+    coralIntake.setInverted(true);
+
 
     // Brake Modes
     frontLeftMotor.setBrakeMode(true);
@@ -112,7 +118,10 @@ void loop() {
     }
 
     // Set motor speeds and servo angles
-    armServo.write(armAngle);
+    if (armAngle != lastArmAngle) {
+        armServo.write(ARM_SERVO_OFFSET - armAngle);
+        lastArmAngle = armAngle;
+    }
     wristServo.write(wristAngle);
     coralIntake.set(coralIntakeThrottle);
     middleIntake.set(middleIntakeThrottle);
@@ -128,18 +137,50 @@ void handleTeleOP() {
     CoralIntake();
     AlgaeIntake();
 
-    // Toggle Scoring side
-    if (PestoLink.buttonHeld(D_LEFT) && scoreSide == back) {
-        scoreSide = front;
-    } else if (PestoLink.buttonHeld(D_LEFT) && scoreSide == front) {
-        scoreSide = back;
-    }
+    // Previous button states for edge detection
+    static bool dLeftPrev = false;
+    static bool dRightPrev = false;
 
-    // Toggle game piece
-    if (PestoLink.buttonHeld(D_RIGHT) && gamePiece == coral) {
-        gamePiece = algae;
-    } else if (PestoLink.buttonHeld(D_RIGHT) && gamePiece == algae) {
-        gamePiece = coral;
+    // Current button states
+    bool dLeftCurr = PestoLink.buttonHeld(D_LEFT);
+    bool dRightCurr = PestoLink.buttonHeld(D_RIGHT);
+
+    // Toggle scoring side  on button press
+    if (dLeftCurr && !dLeftPrev) {
+        if (scoreSide == back) {
+            scoreSide = front;
+            PestoLink.printfTerminal("Front Side");
+        } else {
+            scoreSide = back;
+            PestoLink.printfTerminal("Back Side");
+        }
+    }
+    dLeftPrev = dLeftCurr;
+
+    // Toggle game piece on button press
+    if (dRightCurr && !dRightPrev) {
+        if (gamePiece == coral) {
+            gamePiece = algae;
+            PestoLink.printfTerminal("Algae");
+        } else {
+            gamePiece = coral;
+            PestoLink.printfTerminal("Coral");
+        }
+    }
+    dRightPrev = dRightCurr;
+
+    if (lastPrintTime + 100 < millis()) {
+        PestoLink.printfTerminal("DT: %.2f | Elev: %ld -> %ld | %s | %s | A: %ld | W: %ld \r\n",
+            NoU3.yaw,
+            elevator.getPosition(),
+            elevatorTarget,
+            (gamePiece == coral ? "Coral" : "Algae"),
+            (scoreSide == back ? "Back" : "Front"),
+            armAngle,
+            wristAngle
+        );
+        
+        lastPrintTime = millis();
     }
 
 }
@@ -150,11 +191,6 @@ void Drivetrain() {
     // Rotate the robot in place 5 times, set the measured angle from output console to "measured_angle"
     float measured_angle = 27.5;
     float angular_scale = (5.0*2.0*PI) / measured_angle;
-
-    if (lastPrintTime + 100 < millis()) {
-        PestoLink.printfTerminal("Gyro Yaw: %.3f\r\n",  NoU3.yaw);
-        lastPrintTime = millis();
-    }
 
     float fieldPowerX = PestoLink.getAxis(0);
     float fieldPowerY = -PestoLink.getAxis(1);
@@ -184,12 +220,19 @@ void Drivetrain() {
 void Elevator() {
     
     // Manual Elevator Control
-    if (PestoLink.buttonHeld(LEFT_BUMPER)) {
+    /* if (PestoLink.buttonHeld(LEFT_BUMPER)) {
         elevatorThrottle = 0.5;
     } else if (PestoLink.buttonHeld(RIGHT_BUMPER)){
         elevatorThrottle = -0.5;
     } else {
         elevatorThrottle = 0;
+    }
+    */
+   
+    // Stow
+    if (PestoLink.buttonHeld(RIGHT_BUMPER)) {
+        elevatorTarget = 0;
+        elevatorUseSetpoint = true;
     }
 
     // Setpoints
@@ -206,10 +249,10 @@ void Elevator() {
             if (PestoLink.buttonHeld(BUTTON_TOP)) {
                 elevatorTarget = CORAL_F_L4;
                 elevatorUseSetpoint = true;
-            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
                 elevatorTarget = CORAL_F_L3;
                 elevatorUseSetpoint = true;
-            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 elevatorTarget = CORAL_F_L2;
                 elevatorUseSetpoint = true;
             } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
@@ -220,10 +263,10 @@ void Elevator() {
             if (PestoLink.buttonHeld(BUTTON_TOP)) {
                 elevatorTarget = CORAL_B_L4;
                 elevatorUseSetpoint = true;
-            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
                 elevatorTarget = CORAL_B_L3;
                 elevatorUseSetpoint = true;
-            } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 elevatorTarget = CORAL_B_L2;
                 elevatorUseSetpoint = true;
             } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
@@ -246,7 +289,14 @@ void Elevator() {
         } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
             elevatorTarget = ALGAE_PROCESSOR;
             elevatorUseSetpoint = true;
+        } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+            elevatorTarget = ALGAE_LOW;
+            elevatorUseSetpoint = true;
+        } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
+            elevatorTarget = ALGAE_HIGH;
+            elevatorUseSetpoint = true;
         }
+
     }
 
     // PID Control
@@ -257,11 +307,11 @@ void Elevator() {
         elevatorIntegral += error;
         float derivative = error - elevatorPrevError;
 
-        elevatorPower = (kP * error) + (kI * elevatorIntegral) + (kD * derivative);
+        elevatorPower =  -1 * ((kP * error) + (kI * elevatorIntegral) + (kD * derivative));
         elevatorPower = constrain(elevatorPower, -0.9, 0.9);
 
         // Stop when near target
-        if (abs(error) < 50) {
+        if (abs(error) < 40) {
             elevatorPower = 0;
             elevatorIntegral = 0;
         }
@@ -269,8 +319,6 @@ void Elevator() {
         elevator.set(elevatorPower);
         elevatorPrevError = error;
 
-        PestoLink.printfTerminal("Elevator | Pos:%ld Target:%ld Power:%.2f\r\n",
-                                 currentPos, elevatorTarget, elevatorPower);
     } else {
         elevator.set(elevatorThrottle);
         elevatorIntegral = 0;
@@ -286,83 +334,84 @@ void Elevator() {
 
 void Arm() {
 
+    // Stow
+    if (PestoLink.buttonHeld(RIGHT_BUMPER)) {
+        armAngle = 45;
+        wristAngle = 0;
+    }
+
     // Setpoints
     if (gamePiece == coral) { // Coral Setpoints
 
         // Coral Intake
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
             armAngle = 0;
-            wristAngle = 0;
-        } else {
-            armAngle = 60;
-            wristAngle = 90;
+            wristAngle = 110;
         }
-        
+
         // Coral Scoring
         if (scoreSide == back) { // Score coral back
-            if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+            if (PestoLink.buttonHeld(BUTTON_TOP)) {
                 armAngle = 105; // L4
-                wristAngle = 90;
+                wristAngle = 0;
             } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
                 armAngle = 110; // L3
-                wristAngle = 90;
-            } else if (PestoLink.buttonHeld(BUTTON_TOP)) {
+                wristAngle = 0;
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 armAngle = 135; // L2
-                wristAngle = 90;
-            }
+                wristAngle = 0;
+            }          
         } else if (scoreSide == front) { // Score coral front
-            if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
+            if (PestoLink.buttonHeld(BUTTON_TOP)) {
                 armAngle = 60; // L4
-                wristAngle = 100;
+                wristAngle = 0;
             } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
                 armAngle = 48; // L3
-                wristAngle = 100;
-            } else if (PestoLink.buttonHeld(BUTTON_TOP)) {
+                wristAngle = 0;
+            } else if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 armAngle = 30; // L2
-                wristAngle = 100;
+                wristAngle = 0;
             } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
                 armAngle = 45; // L1
-                wristAngle = -60;
+                wristAngle = 135;
             }
         }
 
 
     } else if (gamePiece == algae) { // Algae Setpoints
 
-        // Algae Intake
+        // Algae Ground Intake
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
-            armAngle = 25;
-            wristAngle = -40;
-        } else {
-            armAngle = 60;
-            wristAngle = 90;
+            armAngle = 20;
+            wristAngle = 190;
         }
 
+        // Algae Reef Intake
         if (scoreSide == back) { // Back Algae Intake
             if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
-                armAngle = 95; // Low Algae
-                wristAngle = 105;
+                armAngle = 125; // Low Algae
+                wristAngle = 0;
             } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
-                armAngle = 95; // High Algae
-                wristAngle = 105;
+                armAngle = 105; // High Algae
+                wristAngle = 0;
             }
         } else if (scoreSide == front) { // Front Algae Intake
             if (PestoLink.buttonHeld(BUTTON_RIGHT)) {
                 armAngle = 45; // Low Algae
-                wristAngle = -35;
+                wristAngle = 155;
             } else if (PestoLink.buttonHeld(BUTTON_LEFT)) {
                 armAngle = 60; // High Algae
-                wristAngle = -45;
+                wristAngle = 165;
             }
         }
 
         // Algae Scoring
         if (PestoLink.buttonHeld(BUTTON_TOP)) {
             armAngle = 70; // Net 
-            wristAngle = -15;
+            wristAngle = 130;
         } else if (PestoLink.buttonHeld(BUTTON_BOTTOM)) {
             armAngle = 0; // Processor 
-            wristAngle = 20;
+            wristAngle = 120;
         }
 
     }
@@ -399,13 +448,18 @@ void ManualArm() {
 void CoralIntake() {
     
     // Control the rollers for intaking and scoring coral
-    if (gamePiece = coral) {
+    if (gamePiece == coral) {
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
-            coralIntakeThrottle = 1;
-            middleIntakeThrottle = 1;
+            coralIntakeThrottle = 0.25;
+            middleIntakeThrottle = 0.4;
         } else if (PestoLink.buttonHeld(RIGHT_TRIGGER)) {
-            coralIntakeThrottle = -1;
-            middleIntakeThrottle = -1;
+            if (scoreSide == back) {
+                coralIntakeThrottle = -1;
+                middleIntakeThrottle = -1;
+            } else if (scoreSide == front) {
+                coralIntakeThrottle = 1;
+                middleIntakeThrottle = 1;
+            }
         } else {
             coralIntakeThrottle = 0;
             middleIntakeThrottle = 0;
@@ -416,10 +470,10 @@ void CoralIntake() {
 void AlgaeIntake() {
 
     // Control the algae rollers for intaking and scoring algae
-    if (gamePiece = algae) {
+    if (gamePiece == algae) {
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
-            algaeIntakeThrottle = 1;
-            middleIntakeThrottle = -1;
+            algaeIntakeThrottle = 0.3;
+            middleIntakeThrottle = -0.3;
         } else if (PestoLink.buttonHeld(RIGHT_TRIGGER)) {
             algaeIntakeThrottle = -1;
             middleIntakeThrottle = 1;
