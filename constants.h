@@ -22,20 +22,26 @@ constexpr int D_RIGHT = 15;
 // Elevator Setpoints
 constexpr long CORAL_INTAKE = 0;
 constexpr long CORAL_F_L1 = 0;
-constexpr long CORAL_F_L2 = 500;
-constexpr long CORAL_F_L3 = 750;
-constexpr long CORAL_F_L4 = 1000;
+constexpr long CORAL_F_L2 = -855;
+constexpr long CORAL_F_L3 = -1885;
+constexpr long CORAL_F_L4 = -2750;
 constexpr long CORAL_B_L1 = 0;
-constexpr long CORAL_B_L2 = 500;
-constexpr long CORAL_B_L3 = 750;
-constexpr long CORAL_B_L4 = 1000;
-constexpr long ALGAE_INTAKE = 100;
-constexpr long ALGAE_NET = 1000;
+constexpr long CORAL_B_L2 = 0;
+constexpr long CORAL_B_L3 = -830;
+constexpr long CORAL_B_L4 = -2665;
+constexpr long ALGAE_INTAKE = 0;
+constexpr long ALGAE_NET = -2700;
 constexpr long ALGAE_PROCESSOR = 0;
+constexpr long ALGAE_HIGH = -1800;
+constexpr long ALGAE_LOW = -600;
+
 
 // Elevator PID
-constexpr float kP = 0.0005;
-constexpr float kI = 0.0000005;
-constexpr float kD = 0.0004;
+constexpr float kP = 0.008;
+constexpr float kI = 0;
+constexpr float kD = 0.003;
+
+// Arm
+const int ARM_SERVO_OFFSET = 180 + 22;
 
 #endif
