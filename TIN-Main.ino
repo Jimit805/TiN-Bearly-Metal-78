@@ -228,7 +228,7 @@ void Elevator() {
         elevatorThrottle = 0;
     }
     */
-   
+
     // Stow
     if (PestoLink.buttonHeld(RIGHT_BUMPER)) {
         elevatorTarget = 0;
@@ -327,7 +327,7 @@ void Elevator() {
 
     // Reset Encoder
     if (PestoLink.buttonHeld(R_PRESS)) {
-        // elevator.resetPosition();
+        elevator.resetPosition();
     }
 }
 
@@ -336,7 +336,7 @@ void Arm() {
 
     // Stow
     if (PestoLink.buttonHeld(RIGHT_BUMPER)) {
-        armAngle = 45;
+        armAngle = 35;
         wristAngle = 0;
     }
 
@@ -382,7 +382,7 @@ void Arm() {
 
         // Algae Ground Intake
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
-            armAngle = 20;
+            armAngle = 18;
             wristAngle = 190;
         }
 
