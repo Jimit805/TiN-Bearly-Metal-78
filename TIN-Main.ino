@@ -447,7 +447,6 @@ void ManualArm() {
 
 void CoralIntake() {
     
-    // Control the rollers for intaking and scoring coral
     if (gamePiece == coral) {
         if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
             coralIntakeThrottle = 0.25;
@@ -469,14 +468,25 @@ void CoralIntake() {
 
 void AlgaeIntake() {
 
-    // Control the algae rollers for intaking and scoring algae
     if (gamePiece == algae) {
-        if (PestoLink.buttonHeld(LEFT_TRIGGER)) {
-            algaeIntakeThrottle = 0.3;
-            middleIntakeThrottle = -0.3;
-        } else if (PestoLink.buttonHeld(RIGHT_TRIGGER)) {
+        static bool intakeToggled = false;
+        static bool leftTriggerPrev = false;
+
+        bool leftTriggerCurr = PestoLink.buttonHeld(LEFT_TRIGGER);
+        bool rightTriggerCurr = PestoLink.buttonHeld(RIGHT_TRIGGER);
+
+        if (leftTriggerCurr && !leftTriggerPrev) {
+            intakeToggled = !intakeToggled;
+        }
+        leftTriggerPrev = leftTriggerCurr;
+
+        // Determine motor speeds
+        if (rightTriggerCurr) {
             algaeIntakeThrottle = -1;
             middleIntakeThrottle = 1;
+        } else if (intakeToggled) {
+            algaeIntakeThrottle = 0.3;
+            middleIntakeThrottle = -0.3;
         } else {
             algaeIntakeThrottle = 0;
             middleIntakeThrottle = 0;
