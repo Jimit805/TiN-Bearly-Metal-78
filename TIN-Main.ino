@@ -1,4 +1,3 @@
-// This is a test for source control
 #include <PestoLink-Receive.h>
 #include <Alfredo_NoU3.h>
 #include <constants.h>
@@ -94,10 +93,14 @@ void loop() {
     unsigned long currentTime = millis();
 
     // Set robot mode
-    if (robotMode == teleOP && PestoLink.buttonHeld(MID_LEFT)) {
+    static bool midLeftPrev = false;
+    bool midLeftCurr = PestoLink.buttonHeld(MID_LEFT);
+
+    if (robotMode == teleOP && midLeftCurr && !midLeftPrev) {
         robotMode = autoOne;
-        autoStartTime = millis(); // record start time
+        autoStartTime = millis();
     }
+    midLeftPrev = midLeftCurr;
 
     // Run the robot mode
     if (PestoLink.update()) {
@@ -463,6 +466,7 @@ void CoralIntake() {
         } else {
             coralIntakeThrottle = 0;
             middleIntakeThrottle = 0;
+            algaeIntakeThrottle = 0;
         }
     }
 }
@@ -507,7 +511,69 @@ void handleAuto() {
         return;
     }
 
-    // Actual auto code
+    // 1 Coral, L4 Middle Auto
+    static int autoStep = 0;
+    static unsigned long stepStart = 0;
 
+    switch (autoStep) {
 
+        // Drive forward
+        case 0:
+            drivetrain.holonomicDrive(0, 0.4, 0);
+            if (currentTime - autoStartTime > 1500) {
+                drivetrain.holonomicDrive(0, 0, 0);
+                autoStep = 1;
+                stepStart = currentTime;
+            }
+            break;
+
+        // Set Arm Angle
+        case 1:
+            armAngle = 105;
+            if (currentTime - stepStart > 1000) {
+                autoStep = 2;
+                stepStart = currentTime;
+            }
+            break;
+
+        // Set Elevator Position
+        case 2:
+            elevatorTarget = CORAL_B_L4;
+            elevatorUseSetpoint = true;
+
+            if (currentTime - stepStart > 1000) {
+                autoStep = 3;
+                stepStart = currentTime;
+            }
+            break;
+
+        // Set wrist angle
+        case 3:
+            wristAngle = 0;
+            if (currentTime - stepStart > 1000) {
+                autoStep = 4;
+                stepStart = currentTime;
+            }
+            break;
+
+        // Score
+        case 4:
+            coralIntakeThrottle = 1.0;
+            middleIntakeThrottle = 1.0;
+
+            if (currentTime - stepStart > 1000) {
+                coralIntakeThrottle = 0.0;
+                middleIntakeThrottle = 0.0;
+                autoStep = 5;
+                stepStart = currentTime;
+            }
+            break;
+        
+        // Make sure nothing runs 
+        case 5:
+            drivetrain.holonomicDrive(0, 0, 0);
+            coralIntakeThrottle = 0;
+            middleIntakeThrottle = 0;
+            break;
+    }
 }
