@@ -519,7 +519,7 @@ void handleAuto() {
 
         // Drive forward
         case 0:
-            drivetrain.holonomicDrive(0, 0.4, 0);
+            drivetrain.holonomicDrive(0, -0.4, 0);
             if (currentTime - autoStartTime > 1500) {
                 drivetrain.holonomicDrive(0, 0, 0);
                 autoStep = 1;
@@ -538,6 +538,7 @@ void handleAuto() {
 
         // Set Elevator Position
         case 2:
+            Elevator();
             elevatorTarget = CORAL_B_L4;
             elevatorUseSetpoint = true;
 
