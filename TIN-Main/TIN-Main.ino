@@ -499,78 +499,66 @@ void AlgaeIntake() {
     }
 }
 
-void handleAuto() {
+static int autoStep = 0;
+static unsigned long stepStart = 0;
 
-    // Handle the timing and robot mode
+void handleAuto() {
     unsigned long currentTime = millis();
 
-    // If 15 seconds have passed since auto started, switch to teleop
     if (currentTime - autoStartTime >= AUTO_DURATION) {
+        autoStep = 5;
         robotMode = teleOP;
-        PestoLink.printfTerminal("Robot Mode: %s", robotMode);
         return;
     }
 
-    // 1 Coral, L4 Middle Auto
-    static int autoStep = 0;
-    static unsigned long stepStart = 0;
-
     switch (autoStep) {
-
-        // Drive forward
         case 0:
+            wristAngle = 0;
             drivetrain.holonomicDrive(0, -0.4, 0);
-            if (currentTime - autoStartTime > 1500) {
+            if (currentTime - autoStartTime > 750) {
                 drivetrain.holonomicDrive(0, 0, 0);
                 autoStep = 1;
                 stepStart = currentTime;
             }
             break;
 
-        // Set Arm Angle
         case 1:
-            armAngle = 105;
+            armAngle = 110;
             if (currentTime - stepStart > 1000) {
                 autoStep = 2;
                 stepStart = currentTime;
             }
             break;
 
-        // Set Elevator Position
         case 2:
             Elevator();
             elevatorTarget = CORAL_B_L4;
             elevatorUseSetpoint = true;
-
             if (currentTime - stepStart > 1000) {
                 autoStep = 3;
                 stepStart = currentTime;
             }
             break;
 
-        // Set wrist angle
         case 3:
-            wristAngle = 0;
-            if (currentTime - stepStart > 1000) {
+            drivetrain.holonomicDrive(0, -0.4, 0);
+            if (currentTime - stepStart > 400) {
+                drivetrain.holonomicDrive(0, 0, 0);
                 autoStep = 4;
                 stepStart = currentTime;
             }
             break;
 
-        // Score
         case 4:
-            coralIntakeThrottle = 1.0;
-            middleIntakeThrottle = 1.0;
-
+            coralIntakeThrottle = -1.0;
+            middleIntakeThrottle = -1.0;
             if (currentTime - stepStart > 1000) {
                 coralIntakeThrottle = 0.0;
                 middleIntakeThrottle = 0.0;
-                autoStep = 5;
-                stepStart = currentTime;
+                autoStep = 5; // stop further action
             }
             break;
-        
-        // Make sure nothing runs 
+
         case 5:
             drivetrain.holonomicDrive(0, 0, 0);
             coralIntakeThrottle = 0;
