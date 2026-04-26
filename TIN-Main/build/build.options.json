@@ -1,9 +1,0 @@
-{
-  "additionalFiles": "..\\..\\..,..\\..\\..,..\\..",
-  "compiler.optimization_flags": "-Os",
-  "customBuildProperties": "",
-  "fqbn": "esp32:esp32:alfredo-nou3:UploadSpeed=921600,USBMode=default,CDCOnBoot=cdc,MSCOnBoot=default,DFUOnBoot=default,UploadMode=cdc,CPUFreq=240,FlashMode=qio,FlashSize=8M,PartitionScheme=default_8MB,DebugLevel=none,LoopCore=1,EventsCore=1,EraseFlash=none",
-  "hardwareFolders": "C:\\Users\\Jimit\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8,C:\\Users\\Jimit\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.8",
-  "otherLibrariesFolders": "C:\\Users\\Jimit\\Documents\\Arduino\\libraries",
-  "sketchLocation": "C:\\Users\\Jimit\\Documents\\MiniFRC\\11.5\\TiN-Bearly-Metal-78\\TIN-Main"
-}
