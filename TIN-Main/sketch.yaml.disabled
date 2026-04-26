@@ -1,0 +1,16 @@
+profiles:
+  profile-1776995574703:
+    fqbn: esp32:esp32:alfredo-nou3:UploadSpeed=921600,USBMode=default,CDCOnBoot=cdc,MSCOnBoot=default,DFUOnBoot=default,UploadMode=cdc,CPUFreq=240,FlashMode=qio,FlashSize=8M,PartitionScheme=default_8MB,DebugLevel=none,LoopCore=1,EventsCore=1,EraseFlash=none
+    platforms:
+      - platform: esp32:esp32 (3.3.8)
+    libraries:
+      - PestoLink-Receive (1.0.10)
+      - ArduinoBLE (2.0.1)
+      - Alfredo-NoU3 (1.0.12)
+    programmer: ""
+    port: COM1
+    port_config:
+      baudrate: "115200"
+      bits: "8"
+      parity: none
+      stop_bits: one
